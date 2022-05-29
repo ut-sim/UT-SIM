@@ -297,6 +297,7 @@ c     variables for data exchange format
       integer*1 Stype(numSockIDs)  
       integer*1 ComPre
       integer*2 NumDOFs 
+      integer*1 Fstiff(numSockIDs)
 	  
       integer*4 iflag
       integer*4 port
@@ -348,6 +349,7 @@ c	  save stiff_matrix2
 	  save protocol
 c	  save Past_disp
       save tmp_step
+      save Fstiff
 	  
 	  
       data socketIDs /numSockIDs*0/
@@ -359,6 +361,7 @@ c	  save Past_disp
 	  data protocol /0/
 c	  data Past_disp
       data tmp_step/1/
+      data Fstiff/numSockIDs*0/
 	  
 	
 c      data stiff_matrix1/24937.60,	0.00,	-43640800.00,	-24937.60,	0.00,
@@ -426,6 +429,7 @@ c note '127.0.0.1' should be changed later
 		 Stype(jtype)   = props(3)
 		 Ttype   = props(4)
 		 ComPre  = props(5)
+         Fstiff(jtype)  = props(6)
 		 NumDOFs = ndofel
 
          call updates(version, commands, Ttype, Stype(jtype), 
@@ -474,9 +478,9 @@ c               call closeconnection(socketID, stat)
 c              commit state
 
 c				abaqus-vt2
-				  if (props(3) .eq. 4) then 
+				  if (Stype(jtype) .eq. 4) then 
 					!write(*,*) 'abaqus-vt2 stiffness'
-				    if (props(6) .eq. 0 .and. stiff_flag1 .eq. 0) then 
+				    if (Fstiff(jtype) .eq. 0 .and. stiff_flag1 .eq. 0) then 
 				     !write(*,*) 'receive stiffness'
 				     call upCommand(RemoteTest_getInitialStiff)
 				     call updatatype(0, 0, 0, 0, 1, 0, 0)
@@ -522,10 +526,10 @@ c	            end abaqus-vt2
 				
 c				abaqus-vt4
 				!write(*,*) 'abaqus-vt4: stiffness'
-				  if (props(3) .eq. 8) then 
+				  if (Stype(jtype) .eq. 8) then 
 				  !write(*,*) 'abaqus-vt4: stiffness'
 				  write(*,*) 'stiff_flags1', stiff_flags1(jtype) 
-				    if (props(6) .eq. 0 .and. stiff_flag1 .eq. 0) then 
+				    if (Fstiff(jtype) .eq. 0 .and. stiff_flag1 .eq. 0) then 
 				     !write(*,*) 'receive stiffness'
 				     call upCommand(RemoteTest_getInitialStiff)
 				     call updatatype(0, 0, 0, 0, 1, 0, 0)
@@ -699,7 +703,7 @@ c              get measured displacement and resisting forces
 			   deallocate (rData)
 			   
 c              get tangent stiffness matrix
-               if (props(6) .eq. 0 .and. stiff_flag1 .eq. 0) then
+               if (Fstiff(jtype) .eq. 0 .and. stiff_flag1 .eq. 0) then
 			   write(*,*) 'tangent stiffness'
 			       call upCommand(RemoteTest_getInitialStiff)
 				   call updatatype(0, 0, 0, 0, 1, 0, 0)
@@ -736,7 +740,7 @@ c              get tangent stiffness matrix
 				   stiff_flags1(jtype)=stiff_flag1
 				   write(*,*) 'end tangent stiffness'
 				   
-			   else if (props(6) .eq. 1 .and. stiff_flag1 .eq. 0) then
+			   else if (Fstiff(jtype) .eq. 1 .and. stiff_flag1 .eq. 0) then
 			           !write(*,*) 'read from input file'
 c      open (unit=99, file='C:\Users\Xu\Desktop\Abaqus\try\test5_implicit
 c     *\Kinit.txt', status='old', action='read')
@@ -769,7 +773,7 @@ c                allocate (stiff_matrix1(ndofel,ndofel))
 			   
 c			   close(unit=99)
 			   
-			   else if (props(6) .eq. 1 .and. stiff_flag1 .eq. 1) then
+			   else if (Fstiff(jtype) .eq. 1 .and. stiff_flag1 .eq. 1) then
                 k = 1
 				
 				if (.not.allocated(stiffness)) then
@@ -784,7 +788,7 @@ c			   close(unit=99)
                    enddo
                 enddo		
 	
-			   else if (props(6) .eq. 0 .and. stiff_flag1 .eq. 1) then
+			   else if (Fstiff(jtype) .eq. 0 .and. stiff_flag1 .eq. 1) then
 
 			       if (.not. allocated(stiffness)) then
 				      write(*,*) 'ERROR - Fail to save stiffness matrix'
@@ -821,8 +825,8 @@ c           commit state
 
 
 c				abaqus-vt2
-				  if (props(3) .eq. 4) then 
-	   if (props(6) .eq. 0 .and. stiff_flag1 .eq. 0 .and. stiff_flag2 .eq. 0) then 
+				  if (Stype(jtype) .eq. 4) then 
+	   if (Fstiff(jtype) .eq. 0 .and. stiff_flag1 .eq. 0 .and. stiff_flag2 .eq. 0) then 
 				     write(*,*) 'receive stiffness'
 				     call upCommand(RemoteTest_getInitialStiff)
 				     call updatatype(0, 0, 0, 0, 1, 0, 0)
@@ -953,7 +957,7 @@ c           get measured resisting forces
 			deallocate (rData)
 
 c           get tangent stiffness matrix
-            if (props(6) .eq. 0 .and. stiff_flag2 .eq. 0) then
+            if (Fstiff(jtype) .eq. 0 .and. stiff_flag2 .eq. 0) then
 			    call upCommand(RemoteTest_getInitialStiff)
 			    call updatatype(0, 0, 0, 0, 1, 0, 0)
 			 
@@ -988,7 +992,7 @@ c           get tangent stiffness matrix
 				stiff_flags2(jtype)=stiff_flag2
 			    deallocate (rData)
 			 
-			   else if (props(6) .eq. 1 .and. stiff_flag2 .eq. 0) then
+			   else if (Fstiff(jtype) .eq. 1 .and. stiff_flag2 .eq. 0) then
 c			    write(*,*) 'read from input file1'
 				
 				if (.not. allocated(stiffness2)) then
@@ -1028,7 +1032,7 @@ c                    close(unit=99)
 			   
 			   stiff_flag2 = 1
 				stiff_flags2(jtype)=stiff_flag2
-			   else if (props(6) .eq. 1 .and. stiff_flag2 .eq. 1) then 
+			   else if (Fstiff(jtype) .eq. 1 .and. stiff_flag2 .eq. 1) then 
 			    write(*,*) 'read from input file2'
                 
 				if (.not. allocated(stiffness2)) then
@@ -1051,7 +1055,7 @@ c                    close(unit=99)
                 enddo				   
                
 
-			   else if (props(6) .eq. 0 .and. stiff_flag2 .eq. 1) then 
+			   else if (Fstiff(jtype) .eq. 0 .and. stiff_flag2 .eq. 1) then 
 c                     do noting		
 				write(*,*) 'do nothing'
                 if (.not. allocated(stiffness2)) then
@@ -1075,7 +1079,7 @@ c     stiffness matrix
 c        get tangent stiffness matrix
          write(*,*) 'stiffness matrix'
 
-               if (props(6) .eq. 0 .and. stiff_flag1 .eq. 0) then
+               if (Fstiff(jtype) .eq. 0 .and. stiff_flag1 .eq. 0) then
 			       call upCommand(RemoteTest_getInitialStiff)
 				   call updatatype(0, 0, 0, 0, 1, 0, 0)
 				   
@@ -1110,7 +1114,7 @@ c        get tangent stiffness matrix
 				   
 				   deallocate (rData)
 				   
-			   else if (props(6) .eq. 1 .and. stiff_flag1 .eq. 0) then
+			   else if (Fstiff(jtype) .eq. 1 .and. stiff_flag1 .eq. 0) then
 c			   write(*,*) 'read from input file'
 
 c      open (unit=99, file='C:\Users\Xu\Desktop\Abaqus\try\test5_implicit
@@ -1143,7 +1147,7 @@ c				enddo
 				stiff_flags1(jtype)=stiff_flag1
 c			   close(unit=99)
 			   
-			   else if (props(6) .eq. 1 .and. stiff_flag1 .eq. 1) then
+			   else if (Fstiff(jtype) .eq. 1 .and. stiff_flag1 .eq. 1) then
                if (.not. allocated(stiffness)) then
 			       write(*,*) 'ERROR - fail to save stiffness matrix'
 				   call xit
@@ -1158,7 +1162,7 @@ c				   enddo
 c                enddo	               
 			   
 				
-			   else if (props(6) .eq. 0 .and. stiff_flag1 .eq. 1) then
+			   else if (Fstiff(jtype) .eq. 0 .and. stiff_flag1 .eq. 1) then
 c                    do noting 
                    if (.not. allocated(stiffness)) then
 				       write(*,*) 'ERROR - fail to save stiffness matrix'
